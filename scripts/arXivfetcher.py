@@ -1,5 +1,10 @@
 import requests
 import xml.etree.ElementTree as ET
+import os
+from openai import OpenAI
+
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+client = OpenAI()
 
 def fetch_arxiv_data(arxiv_id):
     # APIを通じてメタデータを取得
@@ -34,6 +39,19 @@ def print_markdown(arxiv_url, data, bibtex):
     print(f"### 著者\n{', '.join(data['authors'])}\n \n")
     print(f"### 概要\n{data['abstract']}\n")
     print(f"### BibTeX\n```bibtex\n{bibtex}\n```")
+    
+def summarize_abstract(client, text):
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": f"Summarize the study objectives, methodology, results, and conclusions in Japanese using bullet points from the following . \n{text} ",
+            }
+        ],
+        model="gpt-4",
+        temperature=0
+    )
+    return chat_completion.choices[0].message.content
 
 def main():
     arxiv_link = input("Enter the arXiv link: ")
