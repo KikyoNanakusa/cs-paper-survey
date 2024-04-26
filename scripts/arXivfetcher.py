@@ -1,10 +1,21 @@
 import requests
 import xml.etree.ElementTree as ET
-import os
-from openai import OpenAI
 
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-client = OpenAI()
+# import os
+# from openai import OpenAI
+# from dotenv import load_dotenv
+
+# 環境変数をロード
+# load_dotenv()
+
+# 環境変数からAPIキーを取得
+# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# if OPENAI_API_KEY:
+#   print("API Key loaded successfully:", OPENAI_API_KEY)
+#    client = OpenAI(api_key=OPENAI_API_KEY)  # クライアントの初期化をAPIキーが存在する場合のみ行う
+# else:
+#    print("Failed to load API Key. Please check your .env file and environment variable.")
+#    client = None  # クライアントの初期化を行わない
 
 def fetch_arxiv_data(arxiv_id):
     # APIを通じてメタデータを取得
@@ -40,18 +51,21 @@ def print_markdown(arxiv_url, data, bibtex):
     print(f"### 概要\n{data['abstract']}\n")
     print(f"### BibTeX\n```bibtex\n{bibtex}\n```")
     
-def summarize_abstract(client, text):
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": f"Summarize the study objectives, methodology, results, and conclusions in Japanese using bullet points from the following . \n{text} ",
-            }
-        ],
-        model="gpt-4",
-        temperature=0
-    )
-    return chat_completion.choices[0].message.content
+# def summarize_abstract(client, text):
+#    if client is not None:
+#        try:
+#            # Creating a list of messages, with each message as a dictionary.
+#            messages = [{"role": "user", "content": f"Summarize the following abstract in Japanese using bullet points:\n{text}"}]
+#            chat_completion = client.chat.completions.create(
+#                model="gpt-3.5-turbo",
+#                messages=messages,
+#                max_tokens=150
+#            )
+#            return chat_completion['choices'][0]['message']['content'].strip()
+#        except Exception as e:
+#            return f"An error occurred: {str(e)}"
+#    else:
+#        return "Client not initialized; check API key."
 
 def main():
     arxiv_link = input("Enter the arXiv link: ")
@@ -62,6 +76,8 @@ def main():
         if data:
             bibtex = fetch_bibtex(arxiv_id)
             print_markdown(arxiv_link, data, bibtex)
+            # summary = summarize_abstract(client, data['abstract'])
+            # print(f"### 要約\n{summary}")
         else:
             print("Failed to parse data from arXiv.")
     else:
