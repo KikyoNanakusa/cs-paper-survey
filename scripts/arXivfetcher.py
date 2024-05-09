@@ -1,27 +1,63 @@
 import requests
+from dotenv import load_dotenv
+import os
 import xml.etree.ElementTree as ET
 
-# import os
-# from openai import OpenAI
-# from dotenv import load_dotenv
+# 環境変数のロード
+load_dotenv()
 
-# 環境変数をロード
-# load_dotenv()
+# 環境変数を使用
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_REPO = os.getenv("GITHUB_REPO")
 
-# 環境変数からAPIキーを取得
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-# if OPENAI_API_KEY:
-#   print("API Key loaded successfully:", OPENAI_API_KEY)
-#    client = OpenAI(api_key=OPENAI_API_KEY)  # クライアントの初期化をAPIキーが存在する場合のみ行う
-# else:
-#    print("Failed to load API Key. Please check your .env file and environment variable.")
-#    client = None  # クライアントの初期化を行わない
+if GITHUB_TOKEN:
+    print("GitHub Token loaded successfully:", GITHUB_TOKEN)
+else:
+    print("Failed to load GitHub Token. Please check your .env file.")
+
+def create_github_issue(title, body):
+    """GitHubのIssueを作成する"""
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/issues"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    data = {
+        "title": title,
+        "body": body
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 201:
+        print("Issue created successfully.")
+        print("Issue URL:", response.json()['html_url'])
+    else:
+        print("Failed to create issue.")
+        print("Response:", response.content)
+        
 
 def fetch_arxiv_data(arxiv_id):
     # APIを通じてメタデータを取得
     api_url = f'http://export.arxiv.org/api/query?id_list={arxiv_id}'
     response = requests.get(api_url)
     return response
+
+def fetch_bibtex(arxiv_id):
+    bibtex_url = f'https://arxiv.org/bibtex/{arxiv_id}'
+    bibtex_response = requests.get(bibtex_url)
+    if bibtex_response.status_code == 200:
+        return bibtex_response.text.strip()
+    return "BibTeX information could not be fetched."
+
+def print_markdown(arxiv_url, data, bibtex):
+    markdown_content = (
+        f"## 書誌情報\n"
+        f"### タイトル\n{data['title']}\n \n"
+        f"### URL\n{arxiv_url}\n \n"
+        f"### 著者\n{', '.join(data['authors'])}\n \n"
+        f"### 概要\n{data['abstract']}\n"
+        f"### BibTeX\n```bibtex\n{bibtex}\n```"
+    )
+    create_github_issue(data['title'], markdown_content)
 
 def parse_arxiv_data(response):
     if response.status_code == 200:
@@ -36,37 +72,6 @@ def parse_arxiv_data(response):
             }
     return None
 
-def fetch_bibtex(arxiv_id):
-    bibtex_url = f'https://arxiv.org/bibtex/{arxiv_id}'
-    bibtex_response = requests.get(bibtex_url)
-    if bibtex_response.status_code == 200:
-        return bibtex_response.text.strip()
-    return "BibTeX information could not be fetched."
-
-def print_markdown(arxiv_url, data, bibtex):
-    print(f"## 書誌情報")
-    print(f"### タイトル\n{data['title']}\n \n ")
-    print(f"### URL\n{arxiv_url}\n \n")
-    print(f"### 著者\n{', '.join(data['authors'])}\n \n")
-    print(f"### 概要\n{data['abstract']}\n")
-    print(f"### BibTeX\n```bibtex\n{bibtex}\n```")
-    
-# def summarize_abstract(client, text):
-#    if client is not None:
-#        try:
-#            # Creating a list of messages, with each message as a dictionary.
-#            messages = [{"role": "user", "content": f"Summarize the following abstract in Japanese using bullet points:\n{text}"}]
-#            chat_completion = client.chat.completions.create(
-#                model="gpt-3.5-turbo",
-#                messages=messages,
-#                max_tokens=150
-#            )
-#            return chat_completion['choices'][0]['message']['content'].strip()
-#        except Exception as e:
-#            return f"An error occurred: {str(e)}"
-#    else:
-#        return "Client not initialized; check API key."
-
 def main():
     arxiv_link = input("Enter the arXiv link: ")
     arxiv_id = arxiv_link.split('/')[-1]
@@ -76,8 +81,6 @@ def main():
         if data:
             bibtex = fetch_bibtex(arxiv_id)
             print_markdown(arxiv_link, data, bibtex)
-            # summary = summarize_abstract(client, data['abstract'])
-            # print(f"### 要約\n{summary}")
         else:
             print("Failed to parse data from arXiv.")
     else:
