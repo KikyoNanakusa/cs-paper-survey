@@ -3,18 +3,6 @@ from dotenv import load_dotenv
 import os
 import xml.etree.ElementTree as ET
 
-# 環境変数のロード
-load_dotenv()
-
-# 環境変数を使用
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-GITHUB_REPO = os.getenv("GITHUB_REPO")
-
-if GITHUB_TOKEN:
-    print("GitHub Token loaded successfully:", GITHUB_TOKEN)
-else:
-    print("Failed to load GitHub Token. Please check your .env file.")
-
 def create_github_issue(title, body):
     """GitHubのIssueを作成する"""
     url = f"https://api.github.com/repos/{GITHUB_REPO}/issues"
@@ -73,6 +61,18 @@ def parse_arxiv_data(response):
     return None
 
 def main():
+    # 環境変数のロード
+    load_dotenv()
+
+    # 環境変数を使用
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+    GITHUB_REPO = os.getenv("GITHUB_REPO")
+
+    if GITHUB_TOKEN:
+        print("GitHub Token loaded successfully:", GITHUB_TOKEN)
+    else:
+        print("Failed to load GitHub Token. Please check your .env file.")
+
     arxiv_link = input("Enter the arXiv link: ")
     arxiv_id = arxiv_link.split('/')[-1]
     response = fetch_arxiv_data(arxiv_id)
