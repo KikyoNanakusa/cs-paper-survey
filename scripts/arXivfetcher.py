@@ -3,11 +3,11 @@ from dotenv import load_dotenv
 import os
 import xml.etree.ElementTree as ET
 
-def create_github_issue(title, body):
+def create_github_issue(title, body, token, repo):
     """GitHubのIssueを作成する"""
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/issues"
+    url = f"https://api.github.com/repos/{repo}/issues"
     headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
+        "Authorization": f"token {token}",
         "Accept": "application/vnd.github.v3+json"
     }
     data = {
@@ -21,10 +21,8 @@ def create_github_issue(title, body):
     else:
         print("Failed to create issue.")
         print("Response:", response.content)
-        
 
 def fetch_arxiv_data(arxiv_id):
-    # APIを通じてメタデータを取得
     api_url = f'http://export.arxiv.org/api/query?id_list={arxiv_id}'
     response = requests.get(api_url)
     return response
@@ -36,7 +34,7 @@ def fetch_bibtex(arxiv_id):
         return bibtex_response.text.strip()
     return "BibTeX information could not be fetched."
 
-def print_markdown(arxiv_url, data, bibtex):
+def print_markdown(arxiv_url, data, bibtex, token, repo):
     markdown_content = (
         f"## 書誌情報\n"
         f"### タイトル\n{data['title']}\n \n"
@@ -45,11 +43,10 @@ def print_markdown(arxiv_url, data, bibtex):
         f"### 概要\n{data['abstract']}\n"
         f"### BibTeX\n```bibtex\n{bibtex}\n```"
     )
-    create_github_issue(data['title'], markdown_content)
+    create_github_issue(data['title'], markdown_content, token, repo)
 
 def parse_arxiv_data(response):
     if response.status_code == 200:
-        # XMLレスポンスの解析
         root = ET.fromstring(response.content)
         entry = root.find('{http://www.w3.org/2005/Atom}entry')
         if entry is not None:
@@ -61,17 +58,15 @@ def parse_arxiv_data(response):
     return None
 
 def main():
-    # 環境変数のロード
-    load_dotenv()
-
-    # 環境変数を使用
+    load_dotenv()  # 環境変数のロード
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
     GITHUB_REPO = os.getenv("GITHUB_REPO")
 
-    if GITHUB_TOKEN:
-        print("GitHub Token loaded successfully:", GITHUB_TOKEN)
+    if GITHUB_TOKEN and GITHUB_REPO:
+        print("GitHub Token and Repository loaded successfully.")
     else:
-        print("Failed to load GitHub Token. Please check your .env file.")
+        print("Failed to load GitHub Token or Repository. Please check your .env file.")
+        return  # エラー時に処理を停止
 
     arxiv_link = input("Enter the arXiv link: ")
     arxiv_id = arxiv_link.split('/')[-1]
@@ -80,7 +75,7 @@ def main():
         data = parse_arxiv_data(response)
         if data:
             bibtex = fetch_bibtex(arxiv_id)
-            print_markdown(arxiv_link, data, bibtex)
+            print_markdown(arxiv_link, data, bibtex, GITHUB_TOKEN, GITHUB_REPO)
         else:
             print("Failed to parse data from arXiv.")
     else:
@@ -88,3 +83,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
